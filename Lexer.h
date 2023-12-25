@@ -31,16 +31,17 @@ def main():
   print x # output is [[1,2,3], [3,4,5]]
 
   print x, y, sum
+  return
 ;;
 
 */
 
 enum TokenKind : int {
-  tk_punctuation,
+  tk_punctuation, // [] _ , @ + - * / .
   tk_identifier,
   tk_keyword,
-  tk_literal,
-  tk_eof,
+  tk_number, // number
+  tk_string // string, must be wrapped by " or '
   // tk_comment,
 };
 
@@ -61,7 +62,7 @@ public:
   FileLocation file_loc;
   ~Lexer() { file.close(); }
   
-  void nextToken(); // get the next token
+  bool nextToken(); // get the next token
 
   // for debuggin purposes
   TokenKind get_kind() { return kind; }
@@ -72,13 +73,20 @@ public:
   friend class TokenHandler_print;
   friend class TokenHandler_for;
   friend class TokenHandler_in;
+  friend class TokenHandler_return;
+  friend class TokenHandler_identifier;
+  friend class TokenHandler_punctuation;
+  friend class TokenHandler_number;
+  friend class TokenHandler_string;
   friend class TokenHandler_unknown;
 
 private:
   // eat a number of characters
-  void eat_chars(int);
+  void eat_chars_in_the_current_line(int);
   // get a number of unhandeled continuous characters
   std::string_view get_chars_in_this_line(int);
+  // get the char on the positition the is ${dis} slots after the current slot
+  char get_char_in_this_line(int dis);
   // a queue to get 
   // read the next line from the source file
   void nextLine(); 
@@ -112,8 +120,11 @@ struct TokenHandler {
     this->next = next;
   }
   virtual void handle(std::string &code_line) {
-    if (std::isspace(code_line[lexer->file_loc.col])) {
-      lexer->eat_chars(1);
+    while (!lexer->is_end_of_line(0) && std::isspace(code_line[lexer->file_loc.col])) {
+      lexer->eat_chars_in_the_current_line(1);
+    }
+    if (lexer->is_end_of_line(0)) {
+      lexer->nextLine();
     }
   }
   // pass the responsibility to the next handler
@@ -143,11 +154,35 @@ struct TokenHandler_in : TokenHandler {
   void handle(std::string &code_line);
 };
 
+struct TokenHandler_return : TokenHandler {
+  TokenHandler_return(Lexer *lexer, TokenHandler *next) : TokenHandler(lexer, next){}
+  void handle(std::string &code_line);
+};
+
+struct TokenHandler_identifier : TokenHandler {
+  TokenHandler_identifier(Lexer *lexer, TokenHandler *next) : TokenHandler(lexer, next) {}
+  void handle(std::string &code_line);
+};
+
+struct TokenHandler_punctuation : TokenHandler {
+  TokenHandler_punctuation(Lexer *lexer, TokenHandler *next) : TokenHandler(lexer, next) {}
+  void handle(std::string &code_line);
+};
+
+struct TokenHandler_number : TokenHandler {
+  TokenHandler_number(Lexer *lexer, TokenHandler *next) : TokenHandler(lexer, next) {}
+  void handle(std::string &code_line);
+};
+
+struct TokenHandler_string : TokenHandler {
+  TokenHandler_string(Lexer *lexer, TokenHandler *next) : TokenHandler(lexer, next) {}
+  void handle(std::string &code_line);
+};
+
 struct TokenHandler_unknown : TokenHandler {
   TokenHandler_unknown(Lexer *lexer) : TokenHandler(lexer){}
   void handle(std::string &code_line);
 };
-
 
 struct ITokenHandler_Factory {
   virtual TokenHandler *create(Lexer* lexer) = 0;

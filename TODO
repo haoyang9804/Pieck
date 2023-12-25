@@ -1,0 +1,2 @@
+Fix the bug in punctuation handler.
+This bug will lead to recognizing "]:" and ");" as a single punctuation but not a compound.
