@@ -18,20 +18,20 @@ def f(x, y):
 
 def main():
   x = [[1,2,3], [2,3,4]];
-  y = [[1,2], [2,3], [3,4]]
+  y = [[1,2], [2,3], [3,4]];
 
-  print f(x, y) # output is [[14, 20], [20, 29]]
+  print f(x, y); # output is [[14, 20], [20, 29]]
   
-  sum = 0
-  for i in x[0][:2]:
+  sum = 0;
+  for i in x[0][~2]:
     sum += i;
   for &i in x[1]:
     i ++; 
   
-  print x # output is [[1,2,3], [3,4,5]]
+  print x; # output is [[1,2,3], [3,4,5]]
 
-  print x, y, sum
-  return
+  print x, y, sum;
+  return;
 ;;
 
 */
@@ -69,11 +69,14 @@ public:
   std::string get_token() { return token_text; }
 
   friend class TokenHandler;
+  // keywords
   friend class TokenHandler_def;
   friend class TokenHandler_print;
   friend class TokenHandler_for;
   friend class TokenHandler_in;
   friend class TokenHandler_return;
+  friend class TokenHandler_let;
+
   friend class TokenHandler_identifier;
   friend class TokenHandler_punctuation;
   friend class TokenHandler_number;
@@ -158,6 +161,12 @@ struct TokenHandler_return : TokenHandler {
   TokenHandler_return(Lexer *lexer, TokenHandler *next) : TokenHandler(lexer, next){}
   void handle(std::string &code_line);
 };
+
+struct TokenHandler_let : TokenHandler {
+  TokenHandler_let(Lexer *lexer, TokenHandler *next) : TokenHandler(lexer, next){}
+  void handle(std::string &code_line);
+};
+
 
 struct TokenHandler_identifier : TokenHandler {
   TokenHandler_identifier(Lexer *lexer, TokenHandler *next) : TokenHandler(lexer, next) {}

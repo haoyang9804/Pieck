@@ -1,2 +1,7 @@
-Fix the bug in punctuation handler.
-This bug will lead to recognizing "]:" and ");" as a single punctuation but not a compound.
+# TODO
+
+- [ ] Support Error Handling (learn from TVM)
+- [ ] Add a handler for comments
+- [ ] Implement parser and type checker
+- [ ] Incorporate LLVM IR generator
+- [ ] Incorporate MLIR generator

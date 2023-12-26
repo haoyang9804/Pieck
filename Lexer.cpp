@@ -14,14 +14,14 @@ void Lexer::eat_chars_in_the_current_line(int number) {
 }
 
 std::string_view Lexer::get_chars_in_this_line(int number) {
-  ASSERT(number > 0, "The number of characeters you want to obtain should be larger than 0.");
+  ASSERT(number > 0, "get_chars_in_this_line: The number of characeters you want to obtain should be larger than 0.");
   ASSERT(number + file_loc.col <= code_line_length, "There are only " + std::to_string(code_line_length-file_loc.col) + " unhandled characters in this line (" + code_line + "), but the lexer requires " + std::to_string(number));
   return std::string_view(code_line.data() + file_loc.col, number);
 }
 
 char Lexer::get_char_in_this_line(int dis) {
   ASSERT(dis >= 0, "dis should not be less than zero.");
-  ASSERT(dis + file_loc.col < code_line_length, "There are only " + std::to_string(code_line_length-file_loc.col) + " unhandled characters in this line (" + code_line + "), but the lexer requires the " + std::to_string(dis+1) + (dis == 1 ? "st" : (dis == 2 ? "nd" : "th"))); 
+  ASSERT(dis + file_loc.col < code_line_length, "get_char_in_this_line: There are only " + std::to_string(code_line_length-file_loc.col) + " unhandled characters in this line (" + code_line + "), but the lexer requires the " + std::to_string(dis+1) + (dis == 1 ? "st" : (dis == 2 ? "nd" : "th"))); 
   return code_line[file_loc.col + dis];
 }
 
@@ -43,7 +43,7 @@ void Lexer::report() {
 }
 
 bool Lexer::is_end_of_line(int num) {
-  return file_loc.col + num == code_line_length;
+  return file_loc.col + num >= code_line_length;
 }
 
 bool Lexer::is_space(int number) {
@@ -95,6 +95,12 @@ void TokenHandler_return::handle(std::string &code_line) {
   REGISTER_KEYWORD_TOKEN_HANDLER(6, return);
 }
 
+void TokenHandler_let::handle(std::string &code_line) {
+  TokenHandler::handle(code_line);
+  REGISTER_KEYWORD_TOKEN_HANDLER(3, let);
+}
+
+
 void TokenHandler_identifier::handle(std::string &code_line) {
   TokenHandler::handle(code_line);
   if (!std::isalpha(lexer->get_char_in_this_line(0))) {
@@ -117,8 +123,42 @@ void TokenHandler_punctuation::handle(std::string &code_line) {
     return;
   }
   int32_t len = 1;
-  while(! (lexer->is_end_of_line(len) || lexer->is_space(len)) && std::ispunct(lexer->get_char_in_this_line(len))) {
-    len++;
+  switch (lexer->get_char_in_this_line(0)) {
+    // basic calculation-related symbols can be followed by a single '='
+    case '+':
+    case '-':
+    case '*':
+    case '/':
+    case '@':
+      if (!lexer->is_end_of_line(1) && lexer->get_char_in_this_line(1) == '=') {
+        len++;
+      }
+      break;
+    // .T means transpose
+    case '.':
+      if (!lexer->is_end_of_line(1) && lexer->get_char_in_this_line(1) == 'T') {
+        len++;
+      }
+      break;
+    // ; -> statement delimiter ;; -> function delimiter
+    case ';':
+      if (!lexer->is_end_of_line(1) && lexer->get_char_in_this_line(1) == ';') {
+        len++;
+      }
+      break;
+    case '&': // reference
+    case '~': // range
+    case ':': // field
+    case '#': // comment
+    case ',': // element delimiter
+    case '[': case ']':
+    case '{': case '}':
+    case '(': case ')':
+    case '=':
+      break;
+    default:
+      this->lexer->report();
+      break;
   }
   this->lexer->kind = tk_punctuation;
   this->lexer->token_text = code_line.substr(lexer->file_loc.col, len);
@@ -178,7 +218,6 @@ void TokenHandler_unknown::handle(std::string &code_line) {
 
 TokenHandler *Default_TokenHandler_Factory::create(Lexer *lexer) {
   return 
-  // We should check eof at first
   new TokenHandler_def(
   lexer,
   new TokenHandler_print(
@@ -188,6 +227,8 @@ TokenHandler *Default_TokenHandler_Factory::create(Lexer *lexer) {
   new TokenHandler_in(
   lexer,
   new TokenHandler_return(
+  lexer,
+  new TokenHandler_let(
   lexer,
   // TokenHandler_identifier must be placed after all keyword handlers !!
   new TokenHandler_identifier(
@@ -201,7 +242,8 @@ TokenHandler *Default_TokenHandler_Factory::create(Lexer *lexer) {
   new TokenHandler_punctuation(
   lexer,
   new TokenHandler_unknown(
-  lexer))))))))));
+  lexer)))))))))))
+  
   
 }
 
