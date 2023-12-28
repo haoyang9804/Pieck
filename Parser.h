@@ -2,11 +2,23 @@
 
 #include "Lexer.h"
 #include "Error.h"
+#include <cstddef>
 #include <string>
+#include <unordered_map>
 
 class Scope;
-class Decl;
 class Expr;
+class Value;
+class Stmt;
+class Sema;
+
+enum Type {
+  tyUnknown = 0,
+  tyFloat64 = -1,
+  tyNone = -2,
+  tyTuple = -3,
+  tyList = -4
+};
 
 class Stmt {
 protected:
@@ -26,17 +38,15 @@ public:
   StmtChain *next = nullptr;
   StmtChain* add(Stmt *stmt);
 };
+
 class Expr : public Stmt {
-private:
-  enum Type {
-    tyFloat64,
-    tyNone,
-    tyTuple,
-    tyList
-  };
-  Type ty;
+protected:
+  Type ty = tyUnknown;
 public:
   Expr (Type ty) : ty(ty) {}
+  Expr () {}
+  Type type() { return this->ty; }
+  void set_type(Type ty) { this->ty = ty; }
 };
 
 // a sequence of stmts in the same scope
@@ -71,22 +81,22 @@ public:
 
 class DefStmt : public Stmt {
 protected:
-  DefStmt(Scope* scope, const std::string& name, Stmt* rhs) : Stmt(scope), identifier_name(name), rhs(rhs) {}
+  DefStmt(Scope* scope, const std::string& name, Stmt* rhs) : Stmt(scope), identifier_name(name), RHS(rhs) {}
 public:
   std::string identifier_name;
-  Stmt *rhs;
+  Stmt *RHS;
 };
 
 class DefVarStmt : public DefStmt {
 public:
   DefVarStmt(Scope* scope, const std::string& name, Expr* rhs) : DefStmt(scope, name, rhs) {}
-  Expr *rhs_() { return dynamic_cast<Expr*>(this->rhs); }
+  Expr *rhs() { return dynamic_cast<Expr*>(this->RHS); }
 };
 
 class DefFuncStmt : public DefStmt {
 public:
   DefFuncStmt(Scope* scope, const std::string& name, CompoundStmt* rhs) : DefStmt(scope, name, rhs) {}
-  CompoundStmt *rhs_() { return dynamic_cast<CompoundStmt*>(this->rhs); }
+  CompoundStmt *rhs() { return dynamic_cast<CompoundStmt*>(this->RHS); }
 };
 
 //TODO: support parsing Let
@@ -94,40 +104,104 @@ public:
 // };
 
 class CallExpr : public Expr{
-
+public:
+  CallExpr(std::string func_name) : func_name(func_name) {}
+  std::string func_name;
 };
 
 class VarExpr : public Expr {
-
+public:
+  VarExpr(std::string var_name) : var_name(var_name) {}
+  std::string var_name;
 };
 
 class BinaryOpExpr : public Expr {
+protected:
+  enum OP{
+    add,
+    sub,
+    mul,
+    div,
+    matmul
+  };
+public:
+  BinaryOpExpr(Expr* lhs, OP op, Expr* rhs) : lhs(lhs), op(op), rhs(rhs) {}
+  OP op;
+  Expr *lhs, *rhs;
+};
 
+//TODO: support UnaryOP
+// class UnaryOpExpr : public Expr {
+// };
+
+// Describe the shape of a tensor (a1,a2,...,an) or a scale ()
+struct Shape {
+  Shape() {}
+  // the length of the dims vector
+  int32_t dims_dim = -1;
+  // an int array representing the dims
+  // such as [1, 3, 2, 4]
+  int32_t *dims = nullptr;
+  Shape(int32_t dims_dim) : dims_dim(dims_dim) {}
+  Shape(int32_t dims_dim, int32_t dims[]) : dims_dim(dims_dim), dims(dims) {} 
+  // The comparison here is very strict.
+  // Shape A == Shape B holds only when A's dims is exactly the same as B's
+  // Does not support broadcast rules to enable "interspecies communication" such as Scala + Vector
+  bool operator==(const Shape& other);
+  bool operator!=(const Shape& other) { return !operator==(other); }
+  bool unintialized() const { return dims_dim == -1; }
+};
+
+class Value {
+public:
+  Value() {}
+  ~Value() {}
+  virtual bool is_scala() { return false; }
+  virtual bool is_tensor() { return false; }
+  virtual Shape shape() = 0;
+protected:
+  Shape _shape;
+};
+
+class ScalaValue : public Value {
+public:
+  ScalaValue(std::string val_str) {
+    try{
+      this->val = std::stod(val_str); 
+    }
+    catch (...) {
+      ERROR(val_str + " cannot be converted into a double value.");
+    }
+    _shape.dims_dim = 0;
+  }
+  double val;
+  bool is_scala() override { return true; }
+  Shape shape() override;
+};
+
+class TensorValue : public Value {
+public:
+  TensorValue(int32_t dim, Value* vals[]) : dim(dim), vals(vals) {}
+  // dim must be > 0
+  int32_t dim;
+  Value** vals;
+  bool is_tensor() override { return true; }
+  // We delay the shape inference of tensors to when they are used.
+  // Therefore, the unused incorrect shapes will not trigger an error
+  // and should be removed in codegen.
+  Shape shape() override;
+  void set_shape(Shape _shape) {
+    _shape = _shape;
+  }
 };
 
 class ValueExpr : public Expr {
-
-};
-
-class ScalarExpr : public ValueExpr {
-
-};
-
-class TensorExpr : public ValueExpr {
-
-};
-
-class SliceExpr : public TensorExpr {
-
-};
-
-class RangeExpr : public ValueExpr {
-
-};
-
-
-
-class IVisitor {
+protected:
 public:
-  virtual bool visit() = 0;
+  Value* val;
+  ValueExpr(Value* val) : val(val) {}
+};
+
+class Sema {
+
 };
