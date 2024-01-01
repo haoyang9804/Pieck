@@ -1,5 +1,7 @@
 # TODO
 
+- [ ] Add Log
+- [ ] Fix the bug in shape-checking
 - [ ] Support Error Handling (learn from TVM)
 - [ ] Add a handler for comments
 - [ ] Implement parser and type checker
