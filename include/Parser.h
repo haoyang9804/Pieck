@@ -87,8 +87,7 @@ class DefVarStmt : public DefStmt {
 public:
   DefVarStmt(Scope *scope, const std::string &name, Expr *rhs)
       : DefStmt(scope, name), rhs(rhs) {}
-  Expr* rhs;
-
+  Expr *rhs;
 };
 
 class DefFuncStmt : public DefStmt {
@@ -161,7 +160,8 @@ struct Shape {
     std::cout << "{";
     for (int i = 0; i < dims_dim; i++) {
       std::cout << dims[i];
-      if (i < dims_dim - 1) std::cout << ", ";
+      if (i < dims_dim - 1)
+        std::cout << ", ";
     }
     std::cout << "}";
   }

@@ -23,11 +23,11 @@ TEST(TestParser, ShapeChecking) {
   TensorValue *tv4 = new TensorValue(2, vals4); // 2x2
   int dims[2] = {2, 2};
   Shape shape1(2, dims);
-  #ifdef DEBUG
+#ifdef DEBUG
   std::cout << "tv->shape():\n";
   tv4->shape().print();
   std::cout << "shape1's shape:\n";
   shape1.print();
-  #endif
+#endif
   EXPECT_TRUE(tv4->shape() == shape1);
 }

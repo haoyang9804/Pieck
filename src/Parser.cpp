@@ -70,7 +70,7 @@ bool shape_checking(TensorValue *tv) {
   // if all sub-tensors are actually scalars, then no need for
   // further shape checkings on sub-tensors
   if (nextdim == 0) {
-    int32_t* dims = new int[1];
+    int32_t *dims = new int[1];
     dims[0] = tv->dim;
     std::cout << ">>> " << tv->dim << std::endl;
     tv->set_shape(Shape(1, dims));
