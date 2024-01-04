@@ -5,6 +5,9 @@
 #include <cstddef>
 #include <string>
 #include <unordered_map>
+#ifdef DEBUG
+#include <iostream>
+#endif
 
 class Scope;
 class Expr;
@@ -40,17 +43,6 @@ public:
   StmtChain *add(Stmt *stmt);
 };
 
-class Expr : public Stmt {
-protected:
-  Type ty = tyUnknown;
-
-public:
-  Expr(Type ty) : ty(ty) {}
-  Expr() {}
-  Type type() { return this->ty; }
-  void set_type(Type ty) { this->ty = ty; }
-};
-
 // a sequence of stmts in the same scope
 class CompoundStmt : public Stmt {
 private:
@@ -84,31 +76,41 @@ public:
 
 class DefStmt : public Stmt {
 protected:
-  DefStmt(Scope *scope, const std::string &name, Stmt *rhs)
-      : Stmt(scope), identifier_name(name), RHS(rhs) {}
+  DefStmt(Scope *scope, const std::string &name)
+      : Stmt(scope), identifier_name(name) {}
 
 public:
   std::string identifier_name;
-  Stmt *RHS;
 };
 
 class DefVarStmt : public DefStmt {
 public:
   DefVarStmt(Scope *scope, const std::string &name, Expr *rhs)
-      : DefStmt(scope, name, rhs) {}
-  Expr *rhs() { return dynamic_cast<Expr *>(this->RHS); }
+      : DefStmt(scope, name), rhs(rhs) {}
+  Expr* rhs;
+
 };
 
 class DefFuncStmt : public DefStmt {
 public:
   DefFuncStmt(Scope *scope, const std::string &name, CompoundStmt *rhs)
-      : DefStmt(scope, name, rhs) {}
-  CompoundStmt *rhs() { return dynamic_cast<CompoundStmt *>(this->RHS); }
+      : DefStmt(scope, name), rhs(rhs) {}
+  CompoundStmt *rhs;
 };
 
 // TODO: support parsing Let
 //  class LetStmt : public Stmt {
 //  };
+class Expr {
+protected:
+  Type ty = tyUnknown;
+
+public:
+  Expr(Type ty) : ty(ty) {}
+  Expr() {}
+  Type type() { return this->ty; }
+  void set_type(Type ty) { this->ty = ty; }
+};
 
 class CallExpr : public Expr {
 public:
@@ -153,6 +155,17 @@ struct Shape {
   bool operator==(const Shape &other);
   bool operator!=(const Shape &other) { return !operator==(other); }
   bool unintialized() const { return dims_dim == -1; }
+#ifdef DEBUG
+  void print() {
+    ASSERT(!unintialized(), "Shape must be initialized before being printed.");
+    std::cout << "{";
+    for (int i = 0; i < dims_dim; i++) {
+      std::cout << dims[i];
+      if (i < dims_dim - 1) std::cout << ", ";
+    }
+    std::cout << "}";
+  }
+#endif
 };
 
 class Value {

@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.14)
 
 project(Pieck)
 
+# Debug
+option(DEBUG "Enable Debugging." ON)
+if(DEBUG)
+  message(STATUS "Debug Mode On")
+  add_definitions(-DDEBUG)
+endif()
+
 # GoogleTest requires at least C++14
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

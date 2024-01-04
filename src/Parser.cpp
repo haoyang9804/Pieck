@@ -62,7 +62,6 @@ bool shape_checking(TensorValue *tv) {
   };
   // if sub-tensors are not of the same shape,
   // then shape checking fails
-  std::cout << 1 << std::endl;
   int nextdim = f_next_dim(tv, 0);
   for (int i = 1; i < tv->dim; i++) {
     if (nextdim != f_next_dim(tv, i))
@@ -70,24 +69,21 @@ bool shape_checking(TensorValue *tv) {
   }
   // if all sub-tensors are actually scalars, then no need for
   // further shape checkings on sub-tensors
-  std::cout << 1.5 << std::endl;
   if (nextdim == 0) {
-    int32_t dims[] = {tv->dim};
-    std::cout << "> " << tv->dim << std::endl;
+    int32_t* dims = new int[1];
+    dims[0] = tv->dim;
+    std::cout << ">>> " << tv->dim << std::endl;
     tv->set_shape(Shape(1, dims));
     return true;
   }
   // if all sub-tensors are tensors, then check each sub-tensor separately
   // to make sure all of them are of good shape
   bool subchecking = true;
-  std::cout << 1.7 << std::endl;
   for (int i = 0; i < tv->dim; i++) {
     subchecking &= shape_checking(dynamic_cast<TensorValue *>(tv->vals[i]));
   }
-  std::cout << 2 << std::endl;
   if (!subchecking)
     return false;
-  std::cout << 3 << std::endl;
   // Until now, all sub-shape-checking on sub-tensors succeeds, but remains
   // a single problem: what if sub-shapes are not the same?
   Shape shape_0 = tv->vals[0]->shape();
@@ -95,7 +91,6 @@ bool shape_checking(TensorValue *tv) {
     if (shape_0 != tv->vals[i]->shape())
       return false;
   }
-  std::cout << 4 << std::endl;
   int32_t *sub_dims = shape_0.dims;
   int32_t *dims = (int32_t *)malloc(sizeof(int) * (shape_0.dims_dim + 1));
   memcpy(dims + 1, sub_dims, sizeof(int32_t) * (shape_0.dims_dim));
@@ -108,7 +103,6 @@ Shape TensorValue::shape() {
   if (_shape.unintialized()) {
     shape_checking(this);
   }
-  std::cout<<"===\n";
   ASSERT(!_shape.unintialized(), "Shape must be initialized here.");
   return _shape;
 }

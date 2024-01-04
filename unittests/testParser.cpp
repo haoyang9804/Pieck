@@ -20,8 +20,14 @@ TEST(TestParser, ShapeChecking) {
   Value *vals4[2];
   vals4[0] = tv1;
   vals4[1] = tv1;
-  TensorValue *tv4 = new TensorValue(2, vals4);
-  int dims[2] = {1, 2};
+  TensorValue *tv4 = new TensorValue(2, vals4); // 2x2
+  int dims[2] = {2, 2};
   Shape shape1(2, dims);
+  #ifdef DEBUG
+  std::cout << "tv->shape():\n";
+  tv4->shape().print();
+  std::cout << "shape1's shape:\n";
+  shape1.print();
+  #endif
   EXPECT_TRUE(tv4->shape() == shape1);
 }
