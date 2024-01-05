@@ -47,11 +47,11 @@ int Lexer::num_of_unhandled_chars_this_line() {
   return code_line_length - file_loc.col;
 }
 
-void Lexer::report() {
+void Lexer::report(std::string error_msg) {
   std::string msg = "File: " + file_loc.file_name +
                     ", Line: " + std::to_string(file_loc.line) + "\n" +
                     code_line + "\n";
-  msg += std::string(file_loc.col, ' ') + "^ Unexpected character";
+  msg += std::string(file_loc.col, ' ') + "^ " + error_msg;
   ERROR(msg);
 }
 
@@ -172,7 +172,7 @@ void TokenHandler_punctuation::handle(std::string &code_line) {
   case '=':
     break;
   default:
-    this->lexer->report();
+    this->lexer->report("Unexpected character");
     break;
   }
   this->lexer->kind = tk_punctuation;
@@ -226,13 +226,13 @@ void TokenHandler_string::handle(std::string &code_line) {
     this->lexer->token_text = code_line.substr(lexer->file_loc.col, len);
     this->lexer->eat_chars_in_the_current_line(len);
   } else {
-    this->lexer->report();
+    this->lexer->report("Unexpected character");
   }
 }
 
 void TokenHandler_unknown::handle(std::string &code_line) {
   TokenHandler::handle(code_line);
-  this->lexer->report();
+  this->lexer->report("Unexpected character");
 }
 
 TokenHandler *Default_TokenHandler_Factory::create(Lexer *lexer) {
@@ -272,9 +272,11 @@ static Default_TokenHandler_Factory *_token_handler_factory =
     new Default_TokenHandler_Factory();
 
 bool Lexer::nextToken() {
-  _token_handler_factory->create(this)->handle(this->code_line);
+  std::cout << "is_end_of_line ? " << is_end_of_line(0) << std::endl;
+  std::cout << "file.eof() ? " << file.eof() << std::endl;
   if (is_end_of_line(0) && file.eof()) {
     return false;
   }
+  _token_handler_factory->create(this)->handle(this->code_line);
   return true;
 }

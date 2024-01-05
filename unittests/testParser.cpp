@@ -23,11 +23,17 @@ TEST(TestParser, ShapeChecking) {
   TensorValue *tv4 = new TensorValue(2, vals4); // 2x2
   int dims[2] = {2, 2};
   Shape shape1(2, dims);
-#ifdef DEBUG
-  std::cout << "tv->shape():\n";
-  tv4->shape().print();
-  std::cout << "shape1's shape:\n";
-  shape1.print();
-#endif
   EXPECT_TRUE(tv4->shape() == shape1);
+}
+
+TEST(TestParser, build_DefVarStmt_1) {
+  Parser parser("./codes/code_2.pieck");
+  Stmt *stmt = parser.parse();
+  CompoundStmt *c_stmt = dynamic_cast<CompoundStmt *>(stmt);
+  EXPECT_TRUE(c_stmt->isTail());
+  EXPECT_EQ(dynamic_cast<DefVarStmt *>(c_stmt->cur())->identifier_name, "x");
+  ValueExpr *ve =
+      dynamic_cast<ValueExpr *>(dynamic_cast<DefVarStmt *>(c_stmt->cur())->rhs);
+  EXPECT_EQ(dynamic_cast<ScalaValue *>(ve->val)->val, 1.0);
+  EXPECT_EQ(ve->type(), tyFloat64);
 }

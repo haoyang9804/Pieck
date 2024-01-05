@@ -25,8 +25,6 @@ include(AddLLVM)
 include(${Clang_DIR}/AddClang.cmake)
 
 
-option(DEV "Examples for further development" ON)
-
 file(GLOB_RECURSE SRCS 
     src/*.cpp
 )
@@ -35,7 +33,7 @@ target_include_directories(${PROJECT_NAME}_lib
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
 )
-if(DEV)
+if(DEBUG)
   set_target_properties(${PROJECT_NAME}_lib PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 endif()
 
@@ -61,15 +59,17 @@ add_custom_target(
     ${ALL_CXX_SOURCE_FILES}
 )
 
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-)
-# For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
+if(DEBUG)
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  )
+  # For Windows: Prevent overriding the parent project's compiler/linker settings
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
 
-enable_testing()
+  enable_testing()
 
-add_subdirectory(unittests)
+  add_subdirectory(unittests)
+endif()

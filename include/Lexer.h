@@ -37,7 +37,7 @@ def main():
 */
 
 enum TokenKind : int {
-  tk_punctuation, // [] _ , @ + - * / .
+  tk_punctuation, // [] _ , @ + - * / . ; ;;
   tk_identifier,
   tk_keyword,
   tk_number, // number
@@ -65,9 +65,10 @@ public:
 
   bool nextToken(); // get the next token
 
-  // for debuggin purposes
   TokenKind get_kind() { return kind; }
   std::string get_token() { return token_text; }
+  // report the error
+  void report(std::string error_msg);
 
   friend class TokenHandler;
   // keywords
@@ -96,8 +97,6 @@ private:
   void nextLine();
   // the number of remaining characters
   int num_of_unhandled_chars_this_line();
-  // report the error
-  void report();
   // Look n characters backward and check if the nth character is '\n'
   bool is_end_of_line(int num);
   // Look n characters backward and check if the nth character is ' '

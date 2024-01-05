@@ -1,3 +1,10 @@
+
+file(COPY 
+  ${CMAKE_CURRENT_SOURCE_DIR}/codes
+  DESTINATION
+  ${CMAKE_CURRENT_BINARY_DIR}
+)
+
 file(GLOB_RECURSE TESTS
   *.cpp
 )

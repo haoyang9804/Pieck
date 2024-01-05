@@ -3,17 +3,18 @@
 #include "Error.h"
 #include "Lexer.h"
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #ifdef DEBUG
 #include <iostream>
 #endif
 
-class Scope;
 class Expr;
 class Value;
 class Stmt;
-class Sema;
+class Parser;
 
 enum Type {
   tyUnknown = 0,
@@ -23,19 +24,35 @@ enum Type {
   tyList = -4
 };
 
+class Scope {
+public:
+  std::vector<std::string> scope_names;
+  void push(std::string scope_name) { scope_names.push_back(scope_name); }
+  void pop() { scope_names.pop_back(); }
+  bool operator<=(const Scope &other) {
+    if (scope_names.size() < other.scope_names.size())
+      return false;
+    for (int i = 0; i < other.scope_names.size(); i++) {
+      if (scope_names[i] != other.scope_names[i])
+        return false;
+    }
+    return true;
+  }
+};
+
 class Stmt {
 protected:
-  Stmt(Scope *scope) : scope(scope) {}
+  Stmt(Scope scope) : scope(scope) {}
   Stmt(){};
   virtual ~Stmt() {}
 
 public:
-  Scope *scope = nullptr;
+  Scope scope;
 };
 
 class StmtChain {
 public:
-  // Use Constructor only when creating the head of the chain
+  StmtChain() {}
   StmtChain(Stmt *stmt) : stmt(stmt) {}
   Stmt *stmt = nullptr;
   StmtChain *header = this;
@@ -49,9 +66,10 @@ private:
   StmtChain *chain;
 
 public:
-  CompoundStmt(Scope *scope, StmtChain *chain) : Stmt(scope), chain(chain) {}
+  CompoundStmt(Scope scope, StmtChain *chain) : Stmt(scope), chain(chain) {}
   Stmt *header();
   Stmt *next();
+  Stmt *cur();
   bool isTail();
   bool isHeader();
 };
@@ -59,24 +77,24 @@ public:
 class ReturnStmt : public Stmt {
 public:
   Expr *expr;
-  ReturnStmt(Scope *scope, Expr *expr) : Stmt(scope), expr(expr){};
+  ReturnStmt(Scope scope, Expr *expr) : Stmt(scope), expr(expr){};
 };
 
 class LoopStmt : public Stmt {
 public:
   StmtChain *body;
-  LoopStmt(Scope *scope, StmtChain *body) : Stmt(scope), body(body){};
+  LoopStmt(Scope scope, StmtChain *body) : Stmt(scope), body(body){};
 };
 
 class PrintStmt : public Stmt {
 public:
   Expr *expr;
-  PrintStmt(Scope *scope, Expr *expr) : Stmt(scope), expr(expr){};
+  PrintStmt(Scope scope, Expr *expr) : Stmt(scope), expr(expr){};
 };
 
 class DefStmt : public Stmt {
 protected:
-  DefStmt(Scope *scope, const std::string &name)
+  DefStmt(Scope scope, const std::string &name)
       : Stmt(scope), identifier_name(name) {}
 
 public:
@@ -85,14 +103,14 @@ public:
 
 class DefVarStmt : public DefStmt {
 public:
-  DefVarStmt(Scope *scope, const std::string &name, Expr *rhs)
+  DefVarStmt(Scope scope, const std::string &name, Expr *rhs)
       : DefStmt(scope, name), rhs(rhs) {}
   Expr *rhs;
 };
 
 class DefFuncStmt : public DefStmt {
 public:
-  DefFuncStmt(Scope *scope, const std::string &name, CompoundStmt *rhs)
+  DefFuncStmt(Scope scope, const std::string &name, CompoundStmt *rhs)
       : DefStmt(scope, name), rhs(rhs) {}
   CompoundStmt *rhs;
 };
@@ -107,6 +125,7 @@ protected:
 public:
   Expr(Type ty) : ty(ty) {}
   Expr() {}
+  virtual ~Expr() {}
   Type type() { return this->ty; }
   void set_type(Type ty) { this->ty = ty; }
 };
@@ -216,4 +235,17 @@ public:
   ValueExpr(Value *val) : val(val) {}
 };
 
-class Sema {};
+class Parser {
+private:
+  Lexer lexer;
+  Scope scope;
+  DefStmt *build_DefStmt();
+  DefVarStmt *build_DefVarStmt(std::string);
+  DefFuncStmt *build_DefFuncStmt(std::string);
+  Stmt *meet_keyword();
+
+public:
+  Parser(std::string file_name) : lexer(FileLocation(file_name, 0, 0)) {}
+
+  Stmt *parse();
+};

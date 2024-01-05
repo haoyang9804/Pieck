@@ -1,5 +1,6 @@
 #include "../include/Parser.h"
 #include "../include/Error.h"
+#include <cctype>
 #include <string.h>
 
 StmtChain *StmtChain::add(Stmt *stmt) {
@@ -14,6 +15,8 @@ Stmt *CompoundStmt::next() {
   this->chain = this->chain->next;
   return chain->stmt;
 }
+
+Stmt *CompoundStmt::cur() { return chain->stmt; }
 
 bool CompoundStmt::isTail() { return this->chain->next == nullptr; }
 
@@ -52,7 +55,6 @@ Shape ScalaValue::shape() {
 // Pieck follows Numpy's taste on tensors and fails the shape checking if
 // sub-tensors are of different shapes.
 bool shape_checking(TensorValue *tv) {
-  std::cout << tv << std::endl;
   ASSERT(tv->dim > 0, "Tensor's dim must be larger than 0.");
   auto f_next_dim = [](TensorValue *tv, int i) {
     ASSERT(i < tv->dim, "");
@@ -72,7 +74,6 @@ bool shape_checking(TensorValue *tv) {
   if (nextdim == 0) {
     int32_t *dims = new int[1];
     dims[0] = tv->dim;
-    std::cout << ">>> " << tv->dim << std::endl;
     tv->set_shape(Shape(1, dims));
     return true;
   }
@@ -105,4 +106,80 @@ Shape TensorValue::shape() {
   }
   ASSERT(!_shape.unintialized(), "Shape must be initialized here.");
   return _shape;
+}
+
+DefFuncStmt *Parser::build_DefFuncStmt(std::string identifier_name) {
+  // TODO: impl
+  return nullptr;
+}
+
+DefVarStmt *Parser::build_DefVarStmt(std::string identifier_name) {
+  bool res = lexer.nextToken();
+  // TODO: if tk_string is supported, this checking should be expanded
+  // TODO: support 'a = func(x, y)'
+  if (!res ||
+      lexer.get_kind() != tk_number && lexer.get_kind() != tk_identifier) {
+    lexer.report("Expected a number or an identifier");
+  }
+  if (std::isdigit(lexer.get_token()[0])) {
+    std::string digit_token_1 = lexer.get_token();
+    Value *ve_1 = new ScalaValue(digit_token_1);
+    res = lexer.nextToken();
+    if (!res) {
+      lexer.report("Should not end up here.");
+    }
+
+    if (lexer.get_token() == ";") {
+      // x = 1;
+      Expr *expr = new ValueExpr(ve_1);
+      expr->set_type(tyFloat64);
+      return new DefVarStmt(scope, std::move(identifier_name), expr);
+    }
+    // TODO other situations
+    return nullptr;
+  }
+  return nullptr;
+}
+
+DefStmt *Parser::build_DefStmt() {
+  bool res = lexer.nextToken();
+  if (!res || lexer.get_kind() != tk_identifier) {
+    lexer.report("Expected an indentifier");
+  }
+  std::string identifier_name = lexer.get_token();
+  res = lexer.nextToken();
+  if (!res || lexer.get_kind() != tk_punctuation) {
+    lexer.report("Expected a punctuation");
+  }
+  if (lexer.get_token() == "(") {
+    return build_DefFuncStmt(identifier_name);
+  } else if (lexer.get_token() == "=") {
+    return build_DefVarStmt(identifier_name);
+  } else {
+    lexer.report("Expected ( or =, but receives a " + lexer.get_token());
+  }
+}
+
+Stmt *Parser::meet_keyword() {
+  if (lexer.get_token() == "def") {
+    return build_DefStmt();
+  }
+  // TODO: add other keywords here
+}
+
+Stmt *Parser::parse() {
+  bool head_init = false;
+  StmtChain *chain = new StmtChain();
+  while (lexer.nextToken()) {
+    TokenKind tk = lexer.get_kind();
+    std::string token = lexer.get_token();
+    if (tk == tk_keyword) {
+      if (!head_init) {
+        head_init = true;
+        chain->stmt = meet_keyword();
+      } else
+        chain->add(meet_keyword());
+    }
+  }
+  return new CompoundStmt(scope, chain);
 }
